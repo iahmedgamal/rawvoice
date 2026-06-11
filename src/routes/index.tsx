@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { humanizeText } from '../server/humanize'
+import { humanizeText, getRemaining } from '../server/humanize'
 
 export const Route = createFileRoute('/')({ component: App })
 
@@ -14,6 +14,11 @@ function App() {
   const [displayedOutput, setDisplayedOutput] = useState('')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [remaining, setRemaining] = useState<number | null>(null)
+
+  useEffect(() => {
+    getRemaining().then((r) => setRemaining(r.remaining)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!output) { setDisplayedOutput(''); return }
@@ -36,6 +41,7 @@ function App() {
     try {
       const res = await humanizeText({ data: { text: input } })
       setOutput(res.text)
+      setRemaining(res.remaining)
     } catch (err) {
       console.error('humanize error:', err)
       setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`)
@@ -102,6 +108,9 @@ function App() {
               )}
             </button>
             <span className="rv-mid-label">{loading ? 'Rewriting…' : 'Humanize'}</span>
+            {remaining !== null && !loading && (
+              <span className="rv-uses-left">{remaining} left today</span>
+            )}
           </div>
           <div className="rv-mid-line" />
         </div>

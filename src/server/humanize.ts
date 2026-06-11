@@ -1,22 +1,45 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getWebRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import skillContent from '../../.claude/skills/humanizer/SKILL.md?raw'
 
-const DAILY_LIMIT = 100 // total requests per day across all users
+const PER_IP_LIMIT = 10 // requests per IP per day
 
-async function checkRateLimit(): Promise<boolean> {
+// In-memory fallback for local dev (no KV)
+const localCounts = new Map<string, number>()
+
+function getLocalKey(ip: string) {
+  return `${new Date().toISOString().slice(0, 10)}:${ip}`
+}
+
+async function checkRateLimit(): Promise<{ allowed: boolean; remaining: number }> {
   // biome-ignore lint/suspicious/noExplicitAny: CF KV binding
   const kv = (env as any).RATE_LIMIT
-  if (!kv) return true // no KV in local dev — allow
 
-  const today = new Date().toISOString().slice(0, 10) // "2026-06-11"
-  const current = await kv.get(today)
+  const request = getWebRequest()
+  const ip =
+    request?.headers.get('CF-Connecting-IP') ??
+    request?.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
+    'unknown'
+
+  const today = new Date().toISOString().slice(0, 10)
+  const key = `ip:${today}:${ip}`
+
+  if (!kv) {
+    const localKey = getLocalKey(ip)
+    const count = localCounts.get(localKey) ?? 0
+    if (count >= PER_IP_LIMIT) return { allowed: false, remaining: 0 }
+    localCounts.set(localKey, count + 1)
+    return { allowed: true, remaining: PER_IP_LIMIT - count - 1 }
+  }
+
+  const current = await kv.get(key)
   const count = current ? parseInt(current, 10) : 0
 
-  if (count >= DAILY_LIMIT) return false
+  if (count >= PER_IP_LIMIT) return { allowed: false, remaining: 0 }
 
-  await kv.put(today, String(count + 1), { expirationTtl: 86400 })
-  return true
+  await kv.put(key, String(count + 1), { expirationTtl: 86400 })
+  return { allowed: true, remaining: PER_IP_LIMIT - count - 1 }
 }
 
 // Append output rule — skill process says "deliver draft + bullets + final"
@@ -29,17 +52,40 @@ const SYSTEM_PROMPT =
 - Do NOT add commentary, greetings, explanations, or meta-text.
 - Return ONLY the rewritten text. Nothing before it, nothing after it.`
 
+export const getRemaining = createServerFn({ method: 'GET' }).handler(async () => {
+  const kv = (env as any).RATE_LIMIT
+
+  const request = getWebRequest()
+  const ip =
+    request?.headers.get('CF-Connecting-IP') ??
+    request?.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
+    'unknown'
+
+  if (!kv) {
+    const count = localCounts.get(getLocalKey(ip)) ?? 0
+    return { remaining: Math.max(0, PER_IP_LIMIT - count) }
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const key = `ip:${today}:${ip}`
+  const current = await kv.get(key)
+  const count = current ? parseInt(current, 10) : 0
+  return { remaining: Math.max(0, PER_IP_LIMIT - count) }
+})
+
 export const humanizeText = createServerFn({ method: 'POST' })
   .validator((input: { text: string }) => {
     if (!input?.text || typeof input.text !== 'string') throw new Error('Invalid input')
     return input
   })
   .handler(async ({ data }) => {
+    let remaining = PER_IP_LIMIT
     try {
-      const allowed = await checkRateLimit()
-      if (!allowed) throw new Error('Rate limit reached. Try again tomorrow.')
+      const result = await checkRateLimit()
+      if (!result.allowed) throw new Error('Daily limit reached (10/day). Try again tomorrow.')
+      remaining = result.remaining
     } catch (e) {
-      if (e instanceof Error && e.message.includes('Rate limit')) throw e
+      if (e instanceof Error && e.message.includes('Daily limit')) throw e
       // KV unavailable — fail open, don't block the request
     }
 
@@ -60,5 +106,5 @@ export const humanizeText = createServerFn({ method: 'POST' })
 
     const text = response?.response ?? response?.result ?? response?.text ?? ''
     if (!text) throw new Error(`Unexpected AI response shape: ${JSON.stringify(response)}`)
-    return { text: text as string }
+    return { text: text as string, remaining }
   })
