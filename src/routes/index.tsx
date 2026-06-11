@@ -51,7 +51,19 @@ function App() {
           />
         </div>
 
-        <div className="rv-sep" aria-hidden="true" />
+        <div className="rv-mid">
+          <div className="rv-mid-line" />
+          <button
+            type="button"
+            className="rv-btn"
+            onClick={handleHumanize}
+            disabled={!input.trim() || loading}
+            data-loading={loading || undefined}
+          >
+            {loading ? 'Rewriting…' : 'Make It Human'}
+          </button>
+          <div className="rv-mid-line" />
+        </div>
 
         <div className="rv-pane">
           <div className="rv-pane-top">
@@ -80,18 +92,6 @@ function App() {
             />
           )}
         </div>
-      </div>
-
-      <div className="rv-action">
-        <button
-          type="button"
-          className="rv-btn"
-          onClick={handleHumanize}
-          disabled={!input.trim() || loading}
-          data-loading={loading || undefined}
-        >
-          {loading ? 'Rewriting…' : 'Make It Human'}
-        </button>
       </div>
     </main>
   )
