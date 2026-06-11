@@ -10,7 +10,10 @@ export const Route = createRootRoute({
       { title: 'RawVoice — Make It Human' },
       { name: 'description', content: 'Paste your text. Make it sound human.' },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+    ],
   }),
   shellComponent: RootDocument,
 })
