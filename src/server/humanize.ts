@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getWebRequest } from '@tanstack/react-start/server'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import skillContent from '../../.claude/skills/humanizer/SKILL.md?raw'
 
@@ -16,7 +16,7 @@ async function checkRateLimit(): Promise<{ allowed: boolean; remaining: number }
   // biome-ignore lint/suspicious/noExplicitAny: CF KV binding
   const kv = (env as any).RATE_LIMIT
 
-  const request = getWebRequest()
+  const request = getRequest()
   const ip =
     request?.headers.get('CF-Connecting-IP') ??
     request?.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
@@ -55,7 +55,7 @@ const SYSTEM_PROMPT =
 export const getRemaining = createServerFn({ method: 'GET' }).handler(async () => {
   const kv = (env as any).RATE_LIMIT
 
-  const request = getWebRequest()
+  const request = getRequest()
   const ip =
     request?.headers.get('CF-Connecting-IP') ??
     request?.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
