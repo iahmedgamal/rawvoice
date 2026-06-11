@@ -2,6 +2,23 @@ import { createServerFn } from '@tanstack/react-start'
 import { env } from 'cloudflare:workers'
 import skillContent from '../../.claude/skills/humanizer/SKILL.md?raw'
 
+const DAILY_LIMIT = 100 // total requests per day across all users
+
+async function checkRateLimit(): Promise<boolean> {
+  // biome-ignore lint/suspicious/noExplicitAny: CF KV binding
+  const kv = (env as any).RATE_LIMIT
+  if (!kv) return true // no KV in local dev — allow
+
+  const today = new Date().toISOString().slice(0, 10) // "2026-06-11"
+  const current = await kv.get(today)
+  const count = current ? parseInt(current, 10) : 0
+
+  if (count >= DAILY_LIMIT) return false
+
+  await kv.put(today, String(count + 1), { expirationTtl: 86400 })
+  return true
+}
+
 // Append output rule — skill process says "deliver draft + bullets + final"
 // but for the web app we only want the final rewritten text.
 const SYSTEM_PROMPT =
@@ -18,6 +35,14 @@ export const humanizeText = createServerFn({ method: 'POST' })
     return input
   })
   .handler(async ({ data }) => {
+    try {
+      const allowed = await checkRateLimit()
+      if (!allowed) throw new Error('Rate limit reached. Try again tomorrow.')
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('Rate limit')) throw e
+      // KV unavailable — fail open, don't block the request
+    }
+
     // biome-ignore lint/suspicious/noExplicitAny: CF AI binding typed after cf-typegen
     const ai = (env as any).AI
     if (!ai) throw new Error('AI binding not configured')
@@ -33,5 +58,7 @@ export const humanizeText = createServerFn({ method: 'POST' })
       max_tokens: 2048,
     })
 
-    return { text: (response.response as string) ?? '' }
+    const text = response?.response ?? response?.result ?? response?.text ?? ''
+    if (!text) throw new Error(`Unexpected AI response shape: ${JSON.stringify(response)}`)
+    return { text: text as string }
   })

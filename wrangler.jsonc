@@ -6,5 +6,8 @@
   "main": "@tanstack/react-start/server-entry",
   "ai": {
     "binding": "AI"
-  }
+  },
+  "kv_namespaces": [
+    { "binding": "RATE_LIMIT", "id": "2a95c3815cb24bc2831b3bc315e28b2d" }
+  ]
 }
