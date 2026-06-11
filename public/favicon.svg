@@ -1,12 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#F5F0E8"/>
+  <rect width="32" height="32" rx="7" fill="#0C0B09"/>
+  <circle cx="16" cy="9" r="2.5" fill="#E88A4A" opacity="0.95"/>
   <text
     x="16"
-    y="24"
+    y="28"
     font-family="Georgia, serif"
-    font-size="22"
-    font-weight="700"
-    fill="#C9A84C"
+    font-size="20"
+    font-style="italic"
+    font-weight="400"
+    fill="#EAE4DA"
     text-anchor="middle"
   >R</text>
 </svg>

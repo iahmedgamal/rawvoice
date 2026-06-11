@@ -35,12 +35,12 @@
       },
       [
         {
-          "name": "npm run dashboard",
+          "name": "npm run dev",
           "autoExecuteCommands": true,
           "icon": "server",
           "color": "terminal.ansiBlue",
           "commands": [
-            "npm run dashboard"
+            "npm run dev"
           ]
         }
       ],
