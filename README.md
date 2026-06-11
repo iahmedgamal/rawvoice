@@ -59,3 +59,4 @@ npx wrangler kv namespace create RATE_LIMIT
 ```
 
 Paste the returned `id` into `wrangler.jsonc`.
+test
