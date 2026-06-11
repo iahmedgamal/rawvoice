@@ -1,87 +1,98 @@
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { humanizeText } from '../server/humanize'
 
 export const Route = createFileRoute('/')({ component: App })
 
 function App() {
+  const [input, setInput] = useState('')
+  const [output, setOutput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function handleHumanize() {
+    if (!input.trim() || loading) return
+    setLoading(true)
+    setOutput('')
+    try {
+      const res = await humanizeText({ data: { text: input } })
+      setOutput(res.text)
+    } catch (err) {
+      console.error('humanize error:', err)
+      setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(output)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">TanStack Start Base Template</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Start simple, ship quickly.
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          This base starter intentionally keeps things light: two routes, clean
-          structure, and the essentials you need to build from scratch.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <a
-            href="/about"
-            className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:bg-[rgba(79,184,178,0.24)]"
-          >
-            About This Starter
-          </a>
-          <a
-            href="https://tanstack.com/router"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)]"
-          >
-            Router Guide
-          </a>
+    <main className="rv-main">
+      <div className="rv-grain" aria-hidden="true" />
+
+      <header className="rv-header">
+        <h1 className="rv-logo">RawVoice</h1>
+        <p className="rv-tagline">Paste your text. Make it sound human.</p>
+      </header>
+
+      <div className="rv-panels">
+        <div className="rv-pane">
+          <span className="rv-label">Your text</span>
+          <textarea
+            className="rv-textarea"
+            placeholder="Paste AI-generated or stiff text here…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
         </div>
-      </section>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [
-            'Type-Safe Routing',
-            'Routes and links stay in sync across every page.',
-          ],
-          [
-            'Server Functions',
-            'Call server code from your UI without creating API boilerplate.',
-          ],
-          [
-            'Streaming by Default',
-            'Ship progressively rendered responses for faster experiences.',
-          ],
-          [
-            'Tailwind Native',
-            'Design quickly with utility-first styling and reusable tokens.',
-          ],
-        ].map(([title, desc], index) => (
-          <article
-            key={title}
-            className="island-shell feature-card rise-in rounded-2xl p-5"
-            style={{ animationDelay: `${index * 90 + 80}ms` }}
-          >
-            <h2 className="mb-2 text-base font-semibold text-[var(--sea-ink)]">
-              {title}
-            </h2>
-            <p className="m-0 text-sm text-[var(--sea-ink-soft)]">{desc}</p>
-          </article>
-        ))}
-      </section>
+        <div className="rv-sep" aria-hidden="true" />
 
-      <section className="island-shell mt-8 rounded-2xl p-6">
-        <p className="island-kicker mb-2">Quick Start</p>
-        <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-[var(--sea-ink-soft)]">
-          <li>
-            Edit <code>src/routes/index.tsx</code> to customize the home page.
-          </li>
-          <li>
-            Update <code>src/components/Header.tsx</code> and{' '}
-            <code>src/components/Footer.tsx</code> for brand links.
-          </li>
-          <li>
-            Add routes in <code>src/routes</code> and tweak visual tokens in{' '}
-            <code>src/styles.css</code>.
-          </li>
-        </ul>
-      </section>
+        <div className="rv-pane">
+          <div className="rv-pane-top">
+            <span className="rv-label">Humanized</span>
+            {output && !loading && (
+              <button type="button" className="rv-copy" onClick={handleCopy}>
+                {copied ? 'Copied ✓' : 'Copy'}
+              </button>
+            )}
+          </div>
+          {loading ? (
+            <div className="rv-skeleton">
+              <div className="rv-skeleton-line" style={{ width: '92%' }} />
+              <div className="rv-skeleton-line" style={{ width: '78%' }} />
+              <div className="rv-skeleton-line" style={{ width: '88%' }} />
+              <div className="rv-skeleton-line" style={{ width: '65%' }} />
+              <div className="rv-skeleton-line" style={{ width: '83%' }} />
+              <div className="rv-skeleton-line" style={{ width: '55%' }} />
+            </div>
+          ) : (
+            <textarea
+              className="rv-textarea rv-textarea-out"
+              placeholder="Your humanized text will appear here…"
+              value={output}
+              readOnly
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="rv-action">
+        <button
+          type="button"
+          className="rv-btn"
+          onClick={handleHumanize}
+          disabled={!input.trim() || loading}
+          data-loading={loading || undefined}
+        >
+          {loading ? 'Rewriting…' : 'Make It Human'}
+        </button>
+      </div>
     </main>
   )
 }
