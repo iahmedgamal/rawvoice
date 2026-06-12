@@ -27,6 +27,8 @@ function RootDocument({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning>
         {children}
         <Scripts />
+        {/* Cloudflare Web Analytics */}
+        <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "4f047921763b4c6eb1c34aaf95e525ac"}' />
       </body>
     </html>
   )
