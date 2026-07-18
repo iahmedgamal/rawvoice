@@ -1,1 +1,0 @@
-i want to be focus now on the next interview with this company SAP, but in this case they ntt will do the interview for me, i wnat to be prepared he told me i will do 2 interviews this first time with ntt then if i passeed i will be passed to SAP
